@@ -123,7 +123,7 @@ If your Garmin account has 2FA enabled, authentication will fail. The `garmincon
 
 This skill uses [cloudscraper](https://github.com/VeNoMouS/cloudscraper) to bypass Cloudflare protection on Garmin's SSO. Garmin periodically updates their anti-bot measures, which can cause temporary breakdowns. If authentication suddenly stops working after a period of stability:
 
-1. **Update dependencies:** `uv pip install --upgrade garminconnect cloudscraper`
+1. **Update dependencies:** `uv cache clean` then re-run the sync (uv will fetch the latest versions automatically)
 2. **Wait and retry.** Cloudflare blocks are often transient.
 3. **Check the [garminconnect issues page](https://github.com/cyberjunky/python-garminconnect/issues)** — others may be experiencing the same problem.
 

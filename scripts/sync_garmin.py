@@ -17,6 +17,7 @@ from garminconnect import Garmin
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 TOKEN_DIR = Path.home() / ".garminconnect"
+VERBOSE = False
 
 
 def setup(email: str) -> None:
@@ -145,7 +146,9 @@ def fetch_sleep(client: Garmin, day: str) -> str | None:
     """Fetch and format sleep data."""
     try:
         data = client.get_sleep_data(day)
-    except Exception:
+    except Exception as e:
+        if VERBOSE:
+            print(f"    [verbose] Sleep fetch failed: {e}", file=sys.stderr)
         return None
 
     daily = data.get("dailySleepDTO", {})
@@ -183,15 +186,17 @@ def fetch_body(client: Garmin, day: str) -> str | None:
     summary = None
     try:
         summary = client.get_user_summary(day)
-    except Exception:
-        pass
+    except Exception as e:
+        if VERBOSE:
+            print(f"    [verbose] User summary fetch failed: {e}", file=sys.stderr)
 
     # Heart rates
     hr_data = None
     try:
         hr_data = client.get_heart_rates(day)
-    except Exception:
-        pass
+    except Exception as e:
+        if VERBOSE:
+            print(f"    [verbose] Heart rate fetch failed: {e}", file=sys.stderr)
 
     # Body battery
     battery = None
@@ -206,8 +211,9 @@ def fetch_body(client: Garmin, day: str) -> str | None:
             ]
             if values:
                 battery = max(values)
-    except Exception:
-        pass
+    except Exception as e:
+        if VERBOSE:
+            print(f"    [verbose] Body battery fetch failed: {e}", file=sys.stderr)
 
     # HRV
     hrv = None
@@ -217,8 +223,9 @@ def fetch_body(client: Garmin, day: str) -> str | None:
             summary_hrv = hrv_data.get("hrvSummary", {})
             if summary_hrv:
                 hrv = summary_hrv.get("weeklyAvg") or summary_hrv.get("lastNightAvg")
-    except Exception:
-        pass
+    except Exception as e:
+        if VERBOSE:
+            print(f"    [verbose] HRV fetch failed: {e}", file=sys.stderr)
 
     # SpO2
     spo2 = None
@@ -226,8 +233,9 @@ def fetch_body(client: Garmin, day: str) -> str | None:
         spo2_data = client.get_spo2_data(day)
         if spo2_data:
             spo2 = spo2_data.get("averageSpO2")
-    except Exception:
-        pass
+    except Exception as e:
+        if VERBOSE:
+            print(f"    [verbose] SpO2 fetch failed: {e}", file=sys.stderr)
 
     # Weight
     weight = None
@@ -239,8 +247,9 @@ def fetch_body(client: Garmin, day: str) -> str | None:
                 grams = entries[0].get("weight")
                 if grams:
                     weight = round(grams / 1000, 1)
-    except Exception:
-        pass
+    except Exception as e:
+        if VERBOSE:
+            print(f"    [verbose] Weight fetch failed: {e}", file=sys.stderr)
 
     if not summary and not hr_data and battery is None and hrv is None:
         return None
@@ -307,7 +316,9 @@ def fetch_stress(client: Garmin, day: str) -> str | None:
     """Fetch and format stress data."""
     try:
         data = client.get_all_day_stress(day)
-    except Exception:
+    except Exception as e:
+        if VERBOSE:
+            print(f"    [verbose] Stress fetch failed: {e}", file=sys.stderr)
         return None
 
     if not data:
@@ -333,7 +344,9 @@ def fetch_training_readiness(client: Garmin, day: str) -> str | None:
     """Fetch and format training readiness data."""
     try:
         data = client.get_training_readiness(day)
-    except Exception:
+    except Exception as e:
+        if VERBOSE:
+            print(f"    [verbose] Training readiness fetch failed: {e}", file=sys.stderr)
         return None
 
     if not data or not isinstance(data, list) or len(data) == 0:
@@ -359,7 +372,9 @@ def fetch_respiration(client: Garmin, day: str) -> str | None:
     """Fetch and format respiration data."""
     try:
         data = client.get_respiration_data(day)
-    except Exception:
+    except Exception as e:
+        if VERBOSE:
+            print(f"    [verbose] Respiration fetch failed: {e}", file=sys.stderr)
         return None
 
     if not data:
@@ -387,7 +402,9 @@ def fetch_fitness_age(client: Garmin, day: str) -> str | None:
     """Fetch and format fitness age data."""
     try:
         data = client.get_fitnessage_data(day)
-    except Exception:
+    except Exception as e:
+        if VERBOSE:
+            print(f"    [verbose] Fitness age fetch failed: {e}", file=sys.stderr)
         return None
 
     if not data:
@@ -412,7 +429,9 @@ def fetch_intensity_minutes(client: Garmin, day: str) -> str | None:
     """Fetch and format weekly intensity minutes."""
     try:
         data = client.get_intensity_minutes_data(day)
-    except Exception:
+    except Exception as e:
+        if VERBOSE:
+            print(f"    [verbose] Intensity minutes fetch failed: {e}", file=sys.stderr)
         return None
 
     if not data:
@@ -444,7 +463,9 @@ def fetch_activities(client: Garmin, day: str) -> str | None:
     """Fetch and format activities for the day."""
     try:
         activities = client.get_activities_by_date(day, day)
-    except Exception:
+    except Exception as e:
+        if VERBOSE:
+            print(f"    [verbose] Activities fetch failed: {e}", file=sys.stderr)
         return None
 
     if not activities:
@@ -573,6 +594,7 @@ def main() -> None:
     parser.add_argument("--email", type=str, help="Garmin Connect email (used with --setup).")
     parser.add_argument("--date", type=str, help="Specific date to sync (YYYY-MM-DD). Default: today.")
     parser.add_argument("--days", type=int, help="Sync the last N days.")
+    parser.add_argument("--verbose", action="store_true", help="Show detailed error info for failed data fetches.")
     parser.add_argument(
         "--output-dir",
         type=str,
@@ -580,6 +602,9 @@ def main() -> None:
         help="Output directory for markdown files (relative to skill base dir).",
     )
     args = parser.parse_args()
+
+    global VERBOSE
+    VERBOSE = args.verbose
 
     if args.setup:
         if not args.email:
