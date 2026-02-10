@@ -6,6 +6,7 @@
 
 import argparse
 import sys
+import time
 from datetime import date, timedelta
 from getpass import getpass
 from pathlib import Path
@@ -31,12 +32,23 @@ def setup(email: str) -> None:
     TOKEN_DIR.mkdir(parents=True, exist_ok=True)
     tokenstore = str(TOKEN_DIR)
 
-    try:
-        client.login()
-        client.garth.dump(tokenstore)
-    except Exception as e:
-        msg = str(e).lower()
-        print(f"Error: Authentication failed — {e}", file=sys.stderr)
+    last_exc: Exception | None = None
+    for attempt in range(3):
+        try:
+            client.login()
+            client.garth.dump(tokenstore)
+            last_exc = None
+            break
+        except Exception as e:
+            last_exc = e
+            if attempt < 2 and "no profile" in str(e).lower():
+                time.sleep(2**attempt)
+                continue
+            break
+
+    if last_exc is not None:
+        msg = str(last_exc).lower()
+        print(f"Error: Authentication failed — {last_exc}", file=sys.stderr)
         if "no profile" in msg or "connectapi" in msg:
             print(
                 "\nThis usually means Garmin's servers are temporarily blocking requests.\n"
@@ -70,36 +82,43 @@ def authenticate() -> Garmin:
     TOKEN_DIR.mkdir(parents=True, exist_ok=True)
     tokenstore = str(TOKEN_DIR)
 
-    try:
-        client.login(tokenstore)
-    except FileNotFoundError:
+    last_exc: Exception | None = None
+    for attempt in range(3):
+        try:
+            client.login(tokenstore)
+            return client
+        except FileNotFoundError:
+            print(
+                "Error: No cached tokens found.\n"
+                "Run setup first:\n\n"
+                "  uv run scripts/sync_garmin.py --setup --email you@example.com\n",
+                file=sys.stderr,
+            )
+            sys.exit(1)
+        except Exception as e:
+            last_exc = e
+            if attempt < 2 and "no profile" in str(e).lower():
+                time.sleep(2**attempt)
+                continue
+            break
+
+    msg = str(last_exc).lower()
+    if "no profile" in msg or "connectapi" in msg:
         print(
-            "Error: No cached tokens found.\n"
-            "Run setup first:\n\n"
+            "Error: Garmin's servers returned 'No profile'. This is usually\n"
+            "temporary — wait a few minutes and try again. If it persists,\n"
+            "re-run setup:\n\n"
             "  uv run scripts/sync_garmin.py --setup --email you@example.com\n",
             file=sys.stderr,
         )
-        sys.exit(1)
-    except Exception as e:
-        msg = str(e).lower()
-        if "no profile" in msg or "connectapi" in msg:
-            print(
-                "Error: Garmin's servers returned 'No profile'. This is usually\n"
-                "temporary — wait a few minutes and try again. If it persists,\n"
-                "re-run setup:\n\n"
-                "  uv run scripts/sync_garmin.py --setup --email you@example.com\n",
-                file=sys.stderr,
-            )
-        else:
-            print(
-                f"Error: Authentication failed — {e}\n"
-                "Your cached tokens may have expired. Re-run setup:\n\n"
-                "  uv run scripts/sync_garmin.py --setup --email you@example.com\n",
-                file=sys.stderr,
-            )
-        sys.exit(1)
-
-    return client
+    else:
+        print(
+            f"Error: Authentication failed — {last_exc}\n"
+            "Your cached tokens may have expired. Re-run setup:\n\n"
+            "  uv run scripts/sync_garmin.py --setup --email you@example.com\n",
+            file=sys.stderr,
+        )
+    sys.exit(1)
 
 
 def fmt_duration(seconds: float | int | None) -> str:

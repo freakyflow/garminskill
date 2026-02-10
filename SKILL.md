@@ -1,6 +1,6 @@
 ---
 name: garmin-connect
-version: 1.2.0
+version: 1.2.1
 description: Syncs daily health and fitness data from Garmin Connect into markdown files. Provides sleep, activity, heart rate, stress, body battery, HRV, SpO2, and weight data.
 homepage: https://github.com/freakyflow/garminskill
 metadata: {"clawdbot":{"emoji":"💪","requires":{"bins":["uv"]},"install":[{"id":"uv","kind":"brew","formula":"uv","bins":["uv"],"label":"Install uv via Homebrew"}]}}
