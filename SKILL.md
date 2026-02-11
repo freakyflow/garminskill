@@ -1,9 +1,10 @@
 ---
 name: garmin-pulse
-version: 1.3.0
+version: 1.3.1
 description: Syncs daily health and fitness data from Garmin Connect into markdown files. Provides sleep, activity, heart rate, stress, body battery, HRV, SpO2, and weight data.
 homepage: https://github.com/freakyflow/garminskill
-metadata: {"clawdbot":{"emoji":"💪","requires":{"bins":["uv"]},"install":[{"id":"uv","kind":"brew","formula":"uv","bins":["uv"],"label":"Install uv via Homebrew"}]}}
+disable-model-invocation: true
+metadata: {"openclaw":{"emoji":"💪","requires":{"bins":["uv"]},"install":[{"id":"uv","kind":"brew","formula":"uv","bins":["uv"],"label":"Install uv via Homebrew"}]}}
 ---
 
 # Garmin Connect
@@ -54,9 +55,14 @@ To answer health or fitness questions, read the relevant date's file from the `{
 
 This skill uses [uv](https://docs.astral.sh/uv/) to run the sync script. `uv` is a fast Python package manager by Astral that reads inline script metadata (PEP 723) and automatically installs dependencies (`garminconnect`, `cloudscraper`) in an isolated environment — no manual `pip install` needed.
 
-## Credentials
+## Credentials & Stored Data
 
 Garmin Connect does not offer a public OAuth API, so a one-time email/password login is required. During setup, the password is used once to obtain OAuth tokens, then discarded. The tokens are cached locally in `~/.garminconnect/` for approximately one year. At runtime, only the cached tokens are used — no email or password is needed. If tokens expire, re-run the setup command.
+
+**Paths written by this skill:**
+
+- `~/.garminconnect/` — cached OAuth tokens (sensitive; grants access to the user's Garmin account)
+- `{baseDir}/health/` — daily health markdown files (contains personal health data)
 
 ## Cron Setup
 
