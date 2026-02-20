@@ -41,7 +41,7 @@ SpO2: 94.0%
 Moderate: 69 | Vigorous: 158 | Goal: 150
 
 ## Activities
-- **5K Run** — 28:15, 5.0 km, 320 cal
+- **5K Run** (18:12) — 28:15, 5.0 km, 320 cal
   Avg HR 155 / Max 172 | Elevation: +45m | Pace: 5:39/km | Cadence: 168 spm | Training Effect: 3.2 aerobic | VO2 Max: 50
 ```
 
@@ -73,6 +73,9 @@ After setup succeeds, the password is no longer needed. All subsequent syncs use
 ```bash
 # Sync today (no credentials needed — uses cached tokens)
 uv run scripts/sync_garmin.py
+
+# Sync today with verbose logging (shows raw data and fetch errors)
+uv run scripts/sync_garmin.py --verbose
 
 # Sync a specific date
 uv run scripts/sync_garmin.py --date 2025-01-26
