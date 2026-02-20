@@ -5,6 +5,7 @@
 """Sync daily health data from Garmin Connect into markdown files."""
 
 import argparse
+import re
 import sys
 import time
 from datetime import date, timedelta
@@ -174,6 +175,39 @@ def fetch_sleep(client: Garmin, day: str) -> str | None:
     lines.append(f"Deep: {deep} | Light: {light} | REM: {rem} | Awake: {awake}")
     if score is not None:
         lines.append(f"Sleep Score: {score}")
+
+    sleep_need = daily.get("sleepNeed")
+    if sleep_need:
+        # sleepNeed can be a dict (e.g. {'actual': 480, ...}) or just a number
+        # Note: 'actual' seems to be in minutes, fmt_duration expects seconds
+        if isinstance(sleep_need, dict):
+             # Try common keys
+             val = sleep_need.get("actual") or sleep_need.get("value") or sleep_need.get("duration")
+             if val is not None:
+                 # If value is small (e.g. 480), assume minutes -> convert to seconds
+                 if val < 1440: # less than 24 hours in minutes
+                     val *= 60
+                 lines.append(f"Sleep Need: {fmt_duration(val)}")
+        else:
+             # If it's just a number, assume seconds if large, minutes if small?
+             # For now, let's assume seconds if it matches existing behavior or fix if needed
+             lines.append(f"Sleep Need: {fmt_duration(sleep_need)}")
+
+    # Extract all sleep factors (Alcohol, Caffeine, Late Meal, Stress, Recovery, etc.)
+    factors = daily.get("sleepScores", {}).get("overall", {}).get("factors", [])
+    factor_parts = []
+    for f in factors:
+        key = f.get("factorKey")
+        if not key:
+            continue
+        
+        status = f.get("status", "").replace("_", " ").title()
+        # Format key: 'sleepDuration' -> 'Sleep Duration' or 'ALCOHOL' -> 'Alcohol'
+        display_key = re.sub(r'([a-z])([A-Z])', r'\1 \2', key).replace('_', ' ').title()
+        factor_parts.append(f"{display_key}: {status}")
+
+    if factor_parts:
+        lines.append("Sleep Factors: " + " | ".join(factor_parts))
 
     return "\n".join(lines)
 
