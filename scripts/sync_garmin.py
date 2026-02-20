@@ -222,7 +222,14 @@ def fetch_body(client: Garmin, day: str) -> str | None:
         if hrv_data:
             summary_hrv = hrv_data.get("hrvSummary", {})
             if summary_hrv:
-                hrv = summary_hrv.get("weeklyAvg") or summary_hrv.get("lastNightAvg")
+                weekly_avg = summary_hrv.get("weeklyAvg")
+                last_night_avg = summary_hrv.get("lastNightAvg")
+                hrv_details = []
+                if weekly_avg:
+                    hrv_details.append(f"Weekly HRV Avg: {weekly_avg} ms")
+                if last_night_avg:
+                    hrv_details.append(f"Last Night HRV Avg: {last_night_avg} ms")
+                hrv = " | ".join(hrv_details)
     except Exception as e:
         if VERBOSE:
             print(f"    [verbose] HRV fetch failed: {e}", file=sys.stderr)
@@ -299,7 +306,7 @@ def fetch_body(client: Garmin, day: str) -> str | None:
     if battery is not None:
         extra_parts.append(f"Body Battery: {battery}")
     if hrv is not None:
-        extra_parts.append(f"HRV: {hrv} ms")
+        extra_parts.append(f"{hrv}")
     if extra_parts:
         lines.append(" | ".join(extra_parts))
 

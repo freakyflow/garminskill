@@ -6,7 +6,7 @@ An [OpenClaw](https://openclaw.ai) skill that syncs your daily health data from 
 
 - **Sleep** — duration, stages (deep/light/REM/awake), sleep score
 - **Body** — steps, calories, distance, floors
-- **Heart** — resting HR, max HR, HRV
+- **Heart** — resting HR, max HR, weekly vs. last night HRV
 - **Body Battery & SpO2**
 - **Stress** — average level
 - **Training Readiness** — score and level
@@ -28,7 +28,7 @@ Sleep Score: 85
 ## Body: 9,720 steps | 2,317 cal
 Distance: 8.0 km | Floors: 42
 Resting HR: 37 bpm | Max HR: 111 bpm
-HRV: 68 ms
+Weekly HRV Avg: 68 ms | Last Night HRV Avg: 72 ms
 SpO2: 94.0%
 
 ## Training Readiness: 100 (Prime) — Ready To Go
