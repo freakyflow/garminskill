@@ -4,7 +4,8 @@ An [OpenClaw](https://openclaw.ai) skill that syncs your daily health data from 
 
 ## What it syncs
 
-- **Sleep** — duration, stages (deep/light/REM/awake), sleep score
+- **Sleep** — duration, stages (deep/light/REM/awake), sleep score, sleep need, sleep factors (stress, recovery, etc.)
+- **Lifestyle** — alcohol, caffeine, late meal, illness (if logged)
 - **Body** — steps, calories, distance, floors
 - **Heart** — resting HR, max HR, HRV
 - **Body Battery & SpO2**
@@ -24,6 +25,13 @@ An [OpenClaw](https://openclaw.ai) skill that syncs your daily health data from 
 ## Sleep: 8h 39m (Good)
 Deep: 1h 50m | Light: 4h 30m | REM: 2h 19m | Awake: 0h 54m
 Sleep Score: 85
+Sleep Need: 8h 00m
+Sleep Factors: Sleep Duration: Good | Stress: Fair | Recovery: Good
+
+## Lifestyle
+- Alcohol: 1 drink
+- Caffeine: 2 cups
+- Late Meal: Yes
 
 ## Body: 9,720 steps | 2,317 cal
 Distance: 8.0 km | Floors: 42
