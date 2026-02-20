@@ -479,7 +479,40 @@ def fetch_activities(client: Garmin, day: str) -> str | None:
     for act in activities:
         name = act.get("activityName", "Activity")
         duration = fmt_duration_mmss(act.get("duration"))
-        header_parts = [f"**{name}** — {duration}"]
+
+        # Activity start time (local) if available
+        start_local = act.get("startTimeLocal") or act.get("startTimeGMT")
+        start_hm = None
+        if isinstance(start_local, str):
+            # e.g. 2026-02-19T18:12:34.0 or 2026-02-19 18:12:34
+            if "T" in start_local:
+                try:
+                    start_hm = start_local.split("T", 1)[1][:5]
+                except Exception:
+                    start_hm = None
+            elif " " in start_local:
+                try:
+                    start_hm = start_local.split(" ", 1)[1][:5]
+                except Exception:
+                    start_hm = None
+
+        # Fallback: beginTimestamp (ms since epoch)
+        if start_hm is None:
+            ts = act.get("beginTimestamp")
+            if isinstance(ts, (int, float)) and ts > 0:
+                try:
+                    from datetime import datetime
+
+                    start_hm = datetime.fromtimestamp(ts / 1000).strftime("%H:%M")
+                except Exception:
+                    start_hm = None
+
+        header = f"**{name}**"
+        if start_hm:
+            header += f" ({start_hm})"
+        header += f" — {duration}"
+
+        header_parts = [header]
 
         distance = act.get("distance")
         if distance and distance > 0:
