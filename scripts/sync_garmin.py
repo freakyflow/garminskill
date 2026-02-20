@@ -84,7 +84,7 @@ def authenticate() -> Garmin:
     tokenstore = str(TOKEN_DIR)
 
     last_exc: Exception | None = None
-    for attempt in range(3):
+    for attempt in range(5):
         try:
             client.login(tokenstore)
             return client
@@ -98,8 +98,8 @@ def authenticate() -> Garmin:
             sys.exit(1)
         except Exception as e:
             last_exc = e
-            if attempt < 2 and "no profile" in str(e).lower():
-                time.sleep(2**attempt)
+            if attempt < 4 and "no profile" in str(e).lower():
+                time.sleep(2 * (attempt + 1))
                 continue
             break
 
@@ -150,6 +150,10 @@ def fetch_sleep(client: Garmin, day: str) -> str | None:
         if VERBOSE:
             print(f"    [verbose] Sleep fetch failed: {e}", file=sys.stderr)
         return None
+
+    if VERBOSE:
+        import json
+        print(f"    [verbose] Raw Sleep Data for {day}: {json.dumps(data, indent=2)}", file=sys.stderr)
 
     daily = data.get("dailySleepDTO", {})
     if not daily or not daily.get("sleepTimeSeconds"):
@@ -475,7 +479,40 @@ def fetch_activities(client: Garmin, day: str) -> str | None:
     for act in activities:
         name = act.get("activityName", "Activity")
         duration = fmt_duration_mmss(act.get("duration"))
-        header_parts = [f"**{name}** — {duration}"]
+
+        # Activity start time (local) if available
+        start_local = act.get("startTimeLocal") or act.get("startTimeGMT")
+        start_hm = None
+        if isinstance(start_local, str):
+            # e.g. 2026-02-19T18:12:34.0 or 2026-02-19 18:12:34
+            if "T" in start_local:
+                try:
+                    start_hm = start_local.split("T", 1)[1][:5]
+                except Exception:
+                    start_hm = None
+            elif " " in start_local:
+                try:
+                    start_hm = start_local.split(" ", 1)[1][:5]
+                except Exception:
+                    start_hm = None
+
+        # Fallback: beginTimestamp (ms since epoch)
+        if start_hm is None:
+            ts = act.get("beginTimestamp")
+            if isinstance(ts, (int, float)) and ts > 0:
+                try:
+                    from datetime import datetime
+
+                    start_hm = datetime.fromtimestamp(ts / 1000).strftime("%H:%M")
+                except Exception:
+                    start_hm = None
+
+        header = f"**{name}**"
+        if start_hm:
+            header += f" ({start_hm})"
+        header += f" — {duration}"
+
+        header_parts = [header]
 
         distance = act.get("distance")
         if distance and distance > 0:
