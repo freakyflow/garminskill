@@ -56,7 +56,7 @@ Sections are only included when data is available.
   - macOS: `brew install uv`
   - Linux/WSL: `curl -LsSf https://astral.sh/uv/install.sh | sh`
   - Windows: `powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"`
-- A Garmin Connect account (two-factor authentication must be disabled — see [Troubleshooting](#troubleshooting))
+- A Garmin Connect account (2FA/MFA is supported)
 
 ### One-time setup
 
@@ -66,7 +66,15 @@ Authenticate and cache OAuth tokens. This only needs to happen once (~1 year tok
 uv run scripts/sync_garmin.py --setup --email you@example.com
 ```
 
-After setup succeeds, the password is no longer needed. All subsequent syncs use cached tokens only.
+If your account has MFA/2FA enabled, you will be prompted to enter your OTP code during setup:
+
+```
+Garmin Connect password:
+Enter MFA/OTP code from your authenticator app: 123456
+Success! Tokens cached in /Users/you/.garminconnect
+```
+
+After setup succeeds, the password and MFA code are no longer needed. All subsequent syncs use cached tokens only.
 
 ### Run it
 
@@ -110,14 +118,15 @@ This is the most common setup error. It usually means Garmin's servers are tempo
 2. **Double-check your password.** The error can also appear for wrong credentials — Garmin doesn't always return a clear "wrong password" message.
 3. **Check if Garmin Connect is down.** Try logging in at [connect.garmin.com](https://connect.garmin.com) in a browser.
 
-### Two-factor authentication (2FA)
+### Two-factor authentication (2FA / MFA)
 
-If your Garmin account has 2FA enabled, authentication will fail. The `garminconnect` library does not support 2FA/MFA flows. You'll need to disable 2FA on your Garmin account to use this skill:
+MFA is supported. During `--setup`, after entering your password, you will be prompted:
 
-1. Log in to [connect.garmin.com](https://connect.garmin.com)
-2. Go to Account Settings → Security
-3. Disable two-step verification
-4. Re-run setup: `uv run scripts/sync_garmin.py --setup --email you@example.com`
+```
+Enter MFA/OTP code from your authenticator app:
+```
+
+Enter the 6-digit code from your authenticator app (Google Authenticator, Authy, etc.). The code is only needed once — subsequent syncs use cached tokens.
 
 ### Cloudflare / random auth failures
 
@@ -135,5 +144,5 @@ Cached tokens last about a year. When they expire, the sync will tell you to re-
 
 The script uses [garminconnect](https://github.com/cyberjunky/python-garminconnect) with [cloudscraper](https://github.com/VeNoMouS/cloudscraper) to bypass Cloudflare protection on Garmin's SSO. Authentication is split into two phases:
 
-1. **Setup** (`--setup`): Run once in a terminal to authenticate. `getpass` prompts for the password (never echoed to screen or stored in shell history). OAuth tokens are cached in `~/.garminconnect/` (~1 year validity). The password is used once and then discarded.
+1. **Setup** (`--setup`): Run once in a terminal to authenticate. `getpass` prompts for the password (never echoed to screen or stored in shell history). If MFA is enabled, a second prompt collects the OTP code. OAuth tokens are cached in `~/.garminconnect/` (~1 year validity). The password and OTP are used once and then discarded.
 2. **Sync** (default): Uses cached tokens only — no credentials needed. Token refresh is automatic (OAuth1 → OAuth2 exchange, no password required). If tokens expire or are revoked by Garmin, re-run setup.
