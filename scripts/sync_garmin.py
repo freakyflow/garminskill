@@ -1,6 +1,6 @@
 # /// script
 # requires-python = ">=3.10"
-# dependencies = ["garminconnect>=0.2.38", "cloudscraper"]
+# dependencies = ["garminconnect==0.2.38", "cloudscraper"]
 # ///
 """Sync daily health data from Garmin Connect into markdown files."""
 
@@ -20,6 +20,11 @@ TOKEN_DIR = Path.home() / ".garminconnect"
 VERBOSE = False
 
 
+def get_mfa() -> str:
+    """Prompt the user for their MFA/OTP code."""
+    return input("Enter MFA/OTP code from your authenticator app: ")
+
+
 def setup(email: str) -> None:
     """One-time interactive setup: authenticate with email/password and cache tokens."""
     password = getpass("Garmin Connect password: ")
@@ -27,25 +32,30 @@ def setup(email: str) -> None:
         print("Error: Password cannot be empty.", file=sys.stderr)
         sys.exit(1)
 
-    client = Garmin(email, password)
+    client = Garmin(email, password, prompt_mfa=get_mfa)
     client.garth.sess = cloudscraper.create_scraper()
 
     TOKEN_DIR.mkdir(parents=True, exist_ok=True)
     tokenstore = str(TOKEN_DIR)
 
     last_exc: Exception | None = None
-    for attempt in range(3):
-        try:
-            client.login()
-            client.garth.dump(tokenstore)
-            last_exc = None
-            break
-        except Exception as e:
-            last_exc = e
-            if attempt < 2 and "no profile" in str(e).lower():
-                time.sleep(2**attempt)
-                continue
-            break
+    try:
+        client.login()
+        client.garth.dump(tokenstore)
+    except Exception as e:
+        last_exc = e
+        msg = str(e).lower()
+        # "No profile from connectapi" means Cloudflare blocked the profile
+        # check AFTER a successful OAuth flow. The tokens are valid — save them.
+        if "no profile" in msg or "assertionerror" in msg or "connectapi" in msg:
+            try:
+                client.garth.dump(tokenstore)
+                print(f"Warning: Garmin's profile endpoint was temporarily unavailable,")
+                print(f"but your OAuth tokens were saved to {TOKEN_DIR}.")
+                print("Run the sync to verify everything works.")
+                return
+            except Exception:
+                pass  # garth didn't have tokens — fall through to error
 
     if last_exc is not None:
         msg = str(last_exc).lower()
@@ -58,9 +68,7 @@ def setup(email: str) -> None:
             )
         elif "401" in msg or "unauthorized" in msg or "credentials" in msg:
             print(
-                "\nDouble-check your email and password. If you have two-factor\n"
-                "authentication (2FA) enabled on your Garmin account, you may need\n"
-                "to disable it — the garminconnect library does not support 2FA.",
+                "\nDouble-check your email and password.",
                 file=sys.stderr,
             )
         elif "cloudflare" in msg or "captcha" in msg or "403" in msg:
